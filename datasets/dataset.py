@@ -24,7 +24,7 @@ def _parse_timedelta(value: str) -> timedelta:
     return timedelta(hours=arr[0], minutes=arr[1], seconds=arr[2])
 
 
-def _find_classes(root_path: str) -> Tuple[List[str], Dict[str, int]]:
+def find_classes(root_path: str) -> Tuple[List[str], Dict[str, int]]:
     """
     `[class명] xxx/yyy/zzz.mp4 or .xml` 폴더 구조에서 class만 추출
     """
@@ -40,8 +40,8 @@ def _find_classes(root_path: str) -> Tuple[List[str], Dict[str, int]]:
     return classes, class_to_idx
 
 
-def _make_dataset(root_path: str, class_to_idx: Dict[str, int],
-                  ext: Optional[Tuple[str, ...]]):
+def make_dataset(root_path: str, class_to_idx: Dict[str, int],
+                 ext: Optional[Tuple[str, ...]]) -> List[Tuple[str, int]]:
     """
     `[class명] xxx/yyy/zzz.mp4 or .xml` 폴더 구조에서 `list(영상 경로, 클래스)` 변환
     """
@@ -56,9 +56,9 @@ def _make_dataset(root_path: str, class_to_idx: Dict[str, int],
     return items
 
 
-def _read_frames(file_path: str, skip_sec: int = 5, scale: float = 0.1):
+def create_clip(file_path: str, skip_sec: int = 5, scale: float = 0.5):
     """
-    영상으로 부터 `skip_sec`만큼 건너띄며 이미지 추출
+    영상으로 부터 `skip_sec`만큼 건너띄며 클립 생성
     """
     frames = []
     event = et.parse(os.path.splitext(file_path)[0] + '.xml').find('event')
@@ -74,9 +74,9 @@ def _read_frames(file_path: str, skip_sec: int = 5, scale: float = 0.1):
             cap.release()
             break
         frame = cv2.resize(frame, dsize=(0, 0), fx=scale, fy=scale)
-        print(f'cur frame: {cap.get(cv2.CAP_PROP_POS_FRAMES)}, cur sec: {sec}')
         frames.append(frame)
     output = np.stack(frames)  # L, H, W, C
+    print(f'{file_path} clip created')
     return np.einsum('ijkl->lijk', output)  # C, L, H, W
 
 
@@ -86,18 +86,17 @@ class CCTVDataset(Dataset):
 
         self.root_path = root_path
         self.transform = transform
-        self.classes, self.class_to_idx = _find_classes(self.root_path)
-        self.num_classes = len(self.classes)
-        self.samples = _make_dataset(self.root_path, self.class_to_idx,
-                                     ('mp4'))
-        # self.targets = [s[1] for s in self.samples]
+        self.classes, self.class_to_idx = find_classes(self.root_path)
+
+        self.samples = make_dataset(self.root_path, self.class_to_idx, ('mp4'))
+        self.targets = [s[1] for s in self.samples]
 
     def __len__(self) -> int:
         return len(self.samples)
 
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         path, target = self.samples[index]
-        sample = _read_frames(path)  # L, C, H, W
+        sample = create_clip(path)  # L, C, H, W
         sample = np.array(sample)
         if self.transform is not None:
             sample = self.transform(sample)
