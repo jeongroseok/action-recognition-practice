@@ -12,6 +12,10 @@ from torchvision import transforms, utils
 import cv2
 
 
+def _onehot(labels: np.ndarray, num_classes: int):
+    return np.eye(num_classes)[labels]
+
+
 def _parse_timedelta(value: str) -> timedelta:
     """
     hh:mm:ss.s 형식의 문자열로부터 timedelta 파싱
@@ -52,7 +56,7 @@ def _make_dataset(root_path: str, class_to_idx: Dict[str, int],
     return items
 
 
-def _read_frames(file_path: str, skip_sec: int = 5, scale: float = 0.5):
+def _read_frames(file_path: str, skip_sec: int = 5, scale: float = 0.1):
     """
     영상으로 부터 `skip_sec`만큼 건너띄며 이미지 추출
     """
@@ -83,10 +87,10 @@ class CCTVDataset(Dataset):
         self.root_path = root_path
         self.transform = transform
         self.classes, self.class_to_idx = _find_classes(self.root_path)
-
+        self.num_classes = len(self.classes)
         self.samples = _make_dataset(self.root_path, self.class_to_idx,
                                      ('mp4'))
-        self.targets = [s[1] for s in self.samples]
+        # self.targets = [s[1] for s in self.samples]
 
     def __len__(self) -> int:
         return len(self.samples)
@@ -98,11 +102,12 @@ class CCTVDataset(Dataset):
         if self.transform is not None:
             sample = self.transform(sample)
 
-        return sample, target
+        return sample, torch.tensor(
+            target, dtype=torch.long)  # _onehot(target, self.num_classes)
 
 
 class CCTVDataModule(pl.LightningDataModule):
-    def __init__(self, root_path: str, batch_size=32):
+    def __init__(self, root_path: str, batch_size=1):
         super().__init__()
         self.root_path = root_path
         self.batch_size = batch_size

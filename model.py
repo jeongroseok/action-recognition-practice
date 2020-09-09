@@ -12,13 +12,13 @@ class R2Plus1DEncoder(pl.LightningModule):
     """
     (batch, channel, time, height, width)
     """
-    def __init__(self, embed_dim=128):
+    def __init__(self, num_classes: int = 128):
         super().__init__()
         self.model = models.video.r2plus1d_18(True)
         for param in self.model.parameters():
             param.requires_grad = False
         self.model.eval()
-        self.model.fc = nn.Linear(self.model.fc.in_features, embed_dim)
+        self.model.fc = nn.Linear(self.model.fc.in_features, num_classes)
 
     def forward(self, x):
         return self.model(x)
@@ -31,14 +31,16 @@ class R2Plus1DEncoder(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
+        print(f"y_hat: {y_hat}, y: {y}")
         loss = F.cross_entropy(y_hat, y)
-        acc = accuracy(y_hat, y)
+        acc = accuracy(torch.eye(5)[y_hat], y)
         tensorboard_logs = {'train_loss': loss, 'train_acc': acc}
         return {'loss': loss, 'log': tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
+        print(f"y_hat: {y_hat}, y: {y}")
         loss = F.cross_entropy(y_hat, y)
         return {'val_loss': loss}
 
