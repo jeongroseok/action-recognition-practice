@@ -15,13 +15,13 @@ def get_data_loaders(train_batch_size, val_batch_size):
     data_transform = Compose([ToTensor(), Normalize((0.1307, ), (0.3081, ))])
 
     train_loader = DataLoader(MNIST(download=True,
-                                    root="./MNIST_data",
+                                    root="./downloads/MNIST",
                                     transform=data_transform,
                                     train=True),
                               batch_size=train_batch_size)
 
     val_loader = DataLoader(MNIST(download=False,
-                                  root="./MNIST_data",
+                                  root="./downloads/MNIST",
                                   transform=data_transform,
                                   train=False),
                             batch_size=val_batch_size)

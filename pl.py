@@ -46,12 +46,12 @@ from pytorch_lightning import Trainer, seed_everything
 seed_everything(0)
 
 # data
-mnist_train = MNIST(os.getcwd(),
+mnist_train = MNIST("./downloads/MNIST",
                     train=True,
                     download=True,
                     transform=transforms.ToTensor())
 mnist_train = DataLoader(mnist_train, batch_size=8192)
-mnist_val = MNIST(os.getcwd(),
+mnist_val = MNIST("./downloads/MNIST",
                   train=True,
                   download=True,
                   transform=transforms.ToTensor())
