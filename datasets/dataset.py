@@ -24,62 +24,6 @@ def _parse_timedelta(value: str) -> timedelta:
     return timedelta(hours=arr[0], minutes=arr[1], seconds=arr[2])
 
 
-def find_classes(root_path: str) -> Tuple[List[str], Dict[str, int]]:
-    """
-    `[class명] xxx/yyy/zzz.mp4 or .xml` 폴더 구조에서 class만 추출
-    """
-    classes = []
-    for d in os.scandir(root_path):
-        if not d.is_dir():
-            continue
-        c = d.name[1:3]
-        if not c in classes:
-            classes.append(c)
-    classes.sort()
-    class_to_idx = {cls_name: i for i, cls_name in enumerate(classes)}
-    return classes, class_to_idx
-
-
-def make_dataset(root_path: str, class_to_idx: Dict[str, int],
-                 ext: Optional[Tuple[str, ...]]) -> List[Tuple[str, int]]:
-    """
-    `[class명] xxx/yyy/zzz.mp4 or .xml` 폴더 구조에서 `list(영상 경로, 클래스)` 변환
-    """
-    items = []
-    directories = [d for d in os.scandir(root_path) if d.is_dir()]
-    for d in directories:
-        kls = class_to_idx[d.name[1:3]]
-        for root, _, filenames in os.walk(d.path, followlinks=True):
-            for fn in filenames:
-                if fn.lower().endswith(ext):
-                    items.append((os.path.join(root, fn), kls))
-    return items
-
-
-def create_clip(file_path: str, skip_sec: int = 5, scale: float = 0.5):
-    """
-    영상으로 부터 `skip_sec`만큼 건너띄며 클립 생성
-    """
-    frames = []
-    event = et.parse(os.path.splitext(file_path)[0] + '.xml').find('event')
-    starttime = _parse_timedelta(event.findtext('starttime')).total_seconds()
-    duration = _parse_timedelta(event.findtext('duration')).total_seconds()
-    sec = starttime
-    cap = cv2.VideoCapture(file_path, cv2.CAP_FFMPEG)
-    while cap.isOpened():
-        cap.set(cv2.CAP_PROP_POS_MSEC, sec * 1000)
-        sec += skip_sec
-        ret, frame = cap.read()
-        if not ret or sec - starttime >= duration:
-            cap.release()
-            break
-        frame = cv2.resize(frame, dsize=(0, 0), fx=scale, fy=scale)
-        frames.append(frame)
-    output = np.stack(frames)  # L, H, W, C
-    print(f'{file_path} clip created')
-    return np.einsum('ijkl->lijk', output)  # C, L, H, W
-
-
 class CCTVDataset(Dataset):
     """이상행동 CCTV 영상 AI데이터셋"""
     def __init__(self, root_path: str, transform: Optional[Callable] = None):
