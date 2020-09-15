@@ -10,6 +10,6 @@ https://towardsdatascience.com/manage-your-data-science-project-structure-in-ear
 
 - data:
   - raw
-  - preprocessed
+  - processed
 - notebooks
 - model

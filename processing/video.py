@@ -1,6 +1,9 @@
 import ffmpeg
 import numpy as np
 
+# ffmpeg에서 크롭 방법:
+# https://video.stackexchange.com/questions/4563/how-can-i-crop-a-video-with-ffmpeg
+
 
 def create_clip(filename: str,
                 starttime: str,

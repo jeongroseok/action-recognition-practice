@@ -26,33 +26,43 @@ def _parse_timedelta(value: str) -> timedelta:
 
 class NIA2019V1Dataset(Dataset):
     """이상행동 CCTV 영상 AI데이터셋"""
-    def __init__(self, root_path: str, transform: Optional[Callable] = None):
+    def __init__(self,
+                 npz_filename: str,
+                 transform: Optional[Callable] = None):
 
-        self.root_path = root_path
         self.transform = transform
-        self.classes, self.class_to_idx = find_classes(self.root_path)
+        arr = np.load(npz_filename)
 
-        self.samples = make_dataset(self.root_path, self.class_to_idx, ('mp4'))
-        self.targets = [s[1] for s in self.samples]
+        self.clips = arr["clips"]
+        self.targets = arr["targets"]
+
+        self.classes, self.class_to_idx = self.__find_classes(self.targets)
 
     def __len__(self) -> int:
-        return len(self.samples)
+        return len(self.clips)
 
-    def __getitem__(self, index: int) -> Tuple[Any, Any]:
-        path, target = self.samples[index]
-        sample = create_clip(path)  # L, C, H, W
-        sample = np.array(sample)
+    def __getitem__(self, idx: int) -> Tuple[Any, Any]:
+        clip = self.clips[idx]
+
         if self.transform is not None:
-            sample = self.transform(sample)
+            clip = self.transform(clip)
 
-        return sample, torch.tensor(
-            target, dtype=torch.long)  # _onehot(target, self.num_classes)
+        return clip, torch.tensor(
+            self.class_to_idx[self.targets[idx]],
+            dtype=torch.long)  # _onehot(target, self.num_classes)
+
+    @staticmethod
+    def __find_classes(
+            targets: np.ndarray) -> Tuple[List[str], Dict[str, int]]:
+        classes = np.unique(targets).tolist()
+        class_to_idx = {cls_name: i for i, cls_name in enumerate(classes)}
+        return classes, class_to_idx
 
 
 class NIA2019V1DataModule(pl.LightningDataModule):
-    def __init__(self, root_path: str, batch_size=1):
+    def __init__(self, npz_filename: str, batch_size: int = 1):
         super().__init__()
-        self.root_path = root_path
+        self.npz_filename = npz_filename
         self.batch_size = batch_size
 
     def setup(self, stage):
@@ -61,24 +71,13 @@ class NIA2019V1DataModule(pl.LightningDataModule):
             return x.float().div(255)
 
         transform = transforms.Compose([to_tensor])
-        self.dataset = NIA2019V1Dataset(self.root_path, transform)
+        self.dataset = NIA2019V1Dataset(self.npz_filename, transform)
 
-    # return the dataloader for each split
-    def train_dataloader(self):
+    def train_dataloader(self) -> Dataset:
         return DataLoader(self.dataset, batch_size=self.batch_size)
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> Dataset:
         return DataLoader(self.dataset, batch_size=self.batch_size)
 
-    def test_dataloader(self):
+    def test_dataloader(self) -> Dataset:
         return DataLoader(self.dataset, batch_size=self.batch_size)
-
-
-if __name__ == "__main__":
-    global root_path, ds
-    root_path = "E:\subset"
-    ds = NIA2019V1Dataset(root_path)
-    print(f"len(ds) = {len(ds)}")
-    first = ds[0]
-    print(f'first data = {first}')
-    pass
