@@ -7,9 +7,9 @@ https://dzone.com/articles/data-science-project-folder-structure
 https://towardsdatascience.com/manage-your-data-science-project-structure-in-early-stage-95f91d4d0600
 
 공통적으로 다음과 같이 구성됨
-data
 
-- raw
-- preprocessed
-  notebooks
-  model
+- data:
+  - raw
+  - preprocessed
+- notebooks
+- model
