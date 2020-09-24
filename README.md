@@ -22,9 +22,11 @@ W, H: 112
 
 ![figure](./_github/classes.PNG)
 
+![figure2](./_github/hmdb.gif)
+
 ## 결과
 
-배치 사이즈 64, 에폭 21
+배치 사이즈 64
 ![figure](./_github/epoch.PNG)
 ![figure](./_github/acc.PNG)
 ![figure](./_github/loss.PNG)
