@@ -20,14 +20,14 @@ W, H: 112
 
 ### HMDB51에서 다음 25가지 클래스로 구성:
 
-![figure](./_github/classes.png)
+![figure](./_github/classes.PNG)
 
 ## 결과
 
 배치 사이즈 64, 에폭 21
-![figure](./_github/epoch.png)
-![figure](./_github/acc.png)
-![figure](./_github/loss.png)
+![figure](./_github/epoch.PNG)
+![figure](./_github/acc.PNG)
+![figure](./_github/loss.PNG)
 
 ## Project Structure
 
