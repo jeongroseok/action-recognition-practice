@@ -64,9 +64,10 @@ class Object():
     def position(self) -> Dict[str, Any]:
         return {
             "keyframe":
-            self.__tree.find("position").findtext("keyframe"),
-            "keypoint": (self.__tree.find("position/keypoint").findtext("x"),
-                         self.__tree.find("position/keypoint").findtext("x"))
+            int(self.__tree.find("position").findtext("keyframe")),
+            "keypoint":
+            (int(self.__tree.find("position/keypoint").findtext("x")),
+             int(self.__tree.find("position/keypoint").findtext("y")))
         }
 
     @property
@@ -139,9 +140,24 @@ def get_action_names_from_metadata_list(lst: List[MetaData]) -> Set[str]:
 def create_clip_from_action(action: Action,
                             fps: float = 5,
                             explicit_duration: Optional[float] = None,
+                            crop_size: Tuple[int, int] = None,
                             resolution: str = "768x480") -> np.ndarray:
     filename = action.actor.metadata.video_filename
+    starttime = action.starttime
     duration = action.duration
     if explicit_duration:
         duration = explicit_duration
-    return create_clip(filename, action.starttime, duration, fps, resolution)
+
+    crop = None
+    if crop_size:
+        other_info = action.actor.metadata.other_info
+        resolution_new = np.array(resolution.split('x')).astype('int')
+        resolution_old = np.array(
+            (other_info['width'], other_info['height'])).astype(np.int)
+        ratio = resolution_new / resolution_old
+        pos = np.array(action.actor.position['keypoint']) * ratio
+        crop_size = np.array(crop_size)
+        pos -= crop_size / 2
+        crop = np.concatenate((pos, crop_size)).astype(np.int)
+
+    return create_clip(filename, starttime, duration, fps, crop, resolution)

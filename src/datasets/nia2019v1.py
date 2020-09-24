@@ -36,7 +36,9 @@ class NIA2019V1Dataset(Dataset):
         self.clips = arr["clips"]
         self.targets = arr["targets"]
 
-        self.classes, self.class_to_idx = self.__find_classes(self.targets)
+        self.__classes, self.__cls_to_idx = self.__find_classes(self.targets)
+        self.__idx_to_cls = dict(
+            (value, key) for key, value in self.__cls_to_idx.items())
 
     def __len__(self) -> int:
         return len(self.clips)
@@ -48,15 +50,27 @@ class NIA2019V1Dataset(Dataset):
             clip = self.transform(clip)
 
         return clip, torch.tensor(
-            self.class_to_idx[self.targets[idx]],
+            self.__cls_to_idx[self.targets[idx]],
             dtype=torch.long)  # _onehot(target, self.num_classes)
+
+    def idx_to_cls(self, idx: int) -> str:
+        if type(idx) == torch.Tensor:
+            idx = idx.item()
+        return self.__idx_to_cls[idx]
+
+    def cls_to_idx(self, cls: str) -> int:
+        return self.cls_to_idx()[cls]
 
     @staticmethod
     def __find_classes(
             targets: np.ndarray) -> Tuple[List[str], Dict[str, int]]:
         classes = np.unique(targets).tolist()
-        class_to_idx = {cls_name: i for i, cls_name in enumerate(classes)}
-        return classes, class_to_idx
+        cls_to_idx = {cls_name: i for i, cls_name in enumerate(classes)}
+        return classes, cls_to_idx
+
+    @property
+    def classes(self):
+        return self.__classes
 
 
 class NIA2019V1DataModule(pl.LightningDataModule):
@@ -74,10 +88,16 @@ class NIA2019V1DataModule(pl.LightningDataModule):
         self.dataset = NIA2019V1Dataset(self.npz_filename, transform)
 
     def train_dataloader(self) -> Dataset:
-        return DataLoader(self.dataset, batch_size=self.batch_size)
+        return DataLoader(self.dataset,
+                          batch_size=self.batch_size,
+                          shuffle=True)
 
     def val_dataloader(self) -> Dataset:
-        return DataLoader(self.dataset, batch_size=self.batch_size)
+        return DataLoader(self.dataset,
+                          batch_size=self.batch_size,
+                          shuffle=True)
 
     def test_dataloader(self) -> Dataset:
-        return DataLoader(self.dataset, batch_size=self.batch_size)
+        return DataLoader(self.dataset,
+                          batch_size=self.batch_size,
+                          shuffle=True)
